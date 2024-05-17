@@ -48,7 +48,7 @@ nodes:
 
   - id: gnss_rviz2
     operator:
-      python: src/gps_to_ros2.py
+      python:  ../../sensing/gnss_poser/src/gps_to_ros2.py
       inputs:
               # DoraSentence: gnss_sub/DoraSentence
               DoraNavSatFix: gnss_poser/DoraNavSatFix

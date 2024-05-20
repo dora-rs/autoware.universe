@@ -1,80 +1,41 @@
-# imu_corrector
+# Dora-rs imu_corrector
+## 文件清单
 
-## imu_corrector
+**src/imu_corrector_core.cc**  IMU较正节点
+**config/imu_corrector.param.yml**   IMU默认数据
+**dataflow.yml**   Dora数据流文件
 
-`imu_corrector_node` is a node that correct imu data.
+## 编译
 
-1. Correct yaw rate offset $b$ by reading the parameter.
-2. Correct yaw rate standard deviation $\sigma$ by reading the parameter.
+```bash
+mkdir build && cd build
+cmake ..
+cmake --build .
+```
 
-Mathematically, we assume the following equation:
+## 运行
+```bash
+#在imu_corrector路径下
+dora up
+dora start dataflow.yml --name test
+dora logs test imu_corrector
+```
+发送的数据为如下的JSON格式：
 
-$$
-\tilde{\omega}(t) = \omega(t) + b(t) + n(t)
-$$
+![1](figure/1.png)
 
-where $\tilde{\omega}$ denotes observed angular velocity, $\omega$ denotes true angular velocity, $b$ denotes an offset, and $n$ denotes a gaussian noise.
-We also assume that $n\sim\mathcal{N}(0, \sigma^2)$.
 
-<!-- TODO(TIER IV): Make this repository public or change the link. -->
-<!-- Use the value estimated by [deviation_estimator](https://github.com/tier4/calibration_tools/tree/main/localization/deviation_estimation_tools) as the parameters for this node. -->
 
-### Input
+# 问题
 
-| Name     | Type                    | Description  |
-| -------- | ----------------------- | ------------ |
-| `~input` | `sensor_msgs::msg::Imu` | raw imu data |
+问题1：python数据流发送到C++后，C++发送不出去了，报错。
 
-### Output
+```bash
+  2024-03-25T04:16:48.878571Z ERROR dora_node_api_c: unknown output
 
-| Name      | Type                    | Description        |
-| --------- | ----------------------- | ------------------ |
-| `~output` | `sensor_msgs::msg::Imu` | corrected imu data |
+Location:
+    apis/rust/node/src/node/mod.rs:205:13
+    at apis/c/node/src/lib.rs:238
+```
 
-### Parameters
-
-| Name                         | Type   | Description                                      |
-| ---------------------------- | ------ | ------------------------------------------------ |
-| `angular_velocity_offset_x`  | double | roll rate offset in imu_link [rad/s]             |
-| `angular_velocity_offset_y`  | double | pitch rate offset imu_link [rad/s]               |
-| `angular_velocity_offset_z`  | double | yaw rate offset imu_link [rad/s]                 |
-| `angular_velocity_stddev_xx` | double | roll rate standard deviation imu_link [rad/s]    |
-| `angular_velocity_stddev_yy` | double | pitch rate standard deviation imu_link [rad/s]   |
-| `angular_velocity_stddev_zz` | double | yaw rate standard deviation imu_link [rad/s]     |
-| `acceleration_stddev`        | double | acceleration standard deviation imu_link [m/s^2] |
-
-## gyro_bias_estimator
-
-`gyro_bias_validator` is a node that validates the bias of the gyroscope. It subscribes to the `sensor_msgs::msg::Imu` topic and validate if the bias of the gyroscope is within the specified range.
-
-Note that the node calculates bias from the gyroscope data by averaging the data only when the vehicle is stopped.
-
-### Input
-
-| Name              | Type                                            | Description      |
-| ----------------- | ----------------------------------------------- | ---------------- |
-| `~/input/imu_raw` | `sensor_msgs::msg::Imu`                         | **raw** imu data |
-| `~/input/pose`    | `geometry_msgs::msg::PoseWithCovarianceStamped` | ndt pose         |
-
-Note that the input pose is assumed to be accurate enough. For example when using NDT, we assume that the NDT is appropriately converged.
-
-Currently, it is possible to use methods other than NDT as a `pose_source` for Autoware, but less accurate methods are not suitable for IMU bias estimation.
-
-In the future, with careful implementation for pose errors, the IMU bias estimated by NDT could potentially be used not only for validation but also for online calibration.
-
-### Output
-
-| Name                 | Type                                 | Description                   |
-| -------------------- | ------------------------------------ | ----------------------------- |
-| `~/output/gyro_bias` | `geometry_msgs::msg::Vector3Stamped` | bias of the gyroscope [rad/s] |
-
-### Parameters
-
-Note that this node also uses `angular_velocity_offset_x`, `angular_velocity_offset_y`, `angular_velocity_offset_z` parameters from `imu_corrector.param.yaml`.
-
-| Name                                  | Type   | Description                                                                                 |
-| ------------------------------------- | ------ | ------------------------------------------------------------------------------------------- |
-| `gyro_bias_threshold`                 | double | threshold of the bias of the gyroscope [rad/s]                                              |
-| `timer_callback_interval_sec`         | double | seconds about the timer callback function [sec]                                             |
-| `diagnostics_updater_interval_sec`    | double | period of the diagnostics updater [sec]                                                     |
-| `straight_motion_ang_vel_upper_limit` | double | upper limit of yaw angular velocity, beyond which motion is not considered straight [rad/s] |
+原因：`.cc`代码里`out_id`和`.yml`的`output`名称不一样，保持一致就解决了。

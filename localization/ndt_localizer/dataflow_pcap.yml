@@ -1,0 +1,25 @@
+nodes:
+  #rslidar driver   node
+  - id: rslidar_driver
+    custom:
+      source: ../../dora-hardware/dora_to_ros2/lidar/build/rslidar_driver_pcap
+      inputs:
+        tick: dora/timer/millis/100
+      outputs:
+        - pointcloud
+
+  
+  # ndt_localizer node
+  - id: dora_ndt_localizer
+    custom:
+      source: build/ndt_localizer
+      inputs:
+        pointcloud: rslidar_driver/pointcloud 
+      outputs:
+        - resultpose
+
+  - id: pose_to_path
+    operator:
+      python: src/pose_to_ros2.py
+      inputs: 
+        resultpose: dora_ndt_localizer/resultpose

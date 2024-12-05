@@ -4,19 +4,26 @@ from dora import DoraStatus
 import dora
 import numpy as np
 import time
+from dora import Node, Ros2Context, Ros2NodeOptions,Ros2QosPolicies #for 0.3.5
 class Operator:
     def __init__(self) -> None:
-        self.ros2_context = dora.experimental.ros2_bridge.Ros2Context()
+        #self.ros2_context = dora.experimental.ros2_bridge.Ros2Context()#0.3.2
+        self.ros2_context = Ros2Context()#0.3.5
         # create ros2 node
         self.ros2_node = self.ros2_context.new_node(
             "lidar2ros",
             "/ros2_bridge",
-            dora.experimental.ros2_bridge.Ros2NodeOptions(rosout=True)
+            #dora.experimental.ros2_bridge.Ros2NodeOptions(rosout=True)#0.3.2
+            Ros2NodeOptions(rosout=True)#0.3.5
         )
         # create ros2 qos
-        self.topic_qos = dora.experimental.ros2_bridge.Ros2QosPolicies(
-            reliable=True, max_blocking_time=0.1
+        #self.topic_qos = dora.experimental.ros2_bridge.Ros2QosPolicies(
+        #    reliable=True, max_blocking_time=0.1 #0.3.2
+        #)
+        self.topic_qos = Ros2QosPolicies(
+            reliable=True, max_blocking_time=0.1 #0.3.5
         )
+
         # create ros2 topic
         self.lidar_data_topic = self.ros2_node.create_topic(
             "/ros2_bridge/lidar_data",

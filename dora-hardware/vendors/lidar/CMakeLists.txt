@@ -64,32 +64,19 @@ target_link_libraries(rslidar_driver
 )
 
 
-add_executable(rslidar_driver_pcap rslidar_driver_pcap.cc )
-target_link_libraries(rslidar_driver_pcap
-  ${PCL_LIBRARIES}
-  ${EIGEN_LIBRARIES}
-  ${YAMLCPP_LIBRARIES}
-  # glog::glog
-  $ENV{HOME}/dora/target/release/libdora_node_api_c.a
-  m
-  rt
-  dl 
-  pthread
-  pcap
-)
 
-add_executable(rslidar_driver_ros rslidar_driver_ros.cc $ENV{HOME}/dora/examples/c++-ros2-dataflow/build/dora-ros2-bindings.cc $ENV{HOME}/dora/examples/c++-ros2-dataflow/build/dora-node-api.cc)
-target_link_libraries(rslidar_driver_ros
-  ${PCL_LIBRARIES}
-  ${EIGEN_LIBRARIES}
-  ${YAMLCPP_LIBRARIES}
-  $ENV{HOME}/dora/target/debug/libdora_node_api_cxx.a
-  m
-  rt
-  dl 
-  pthread
-  pcap
-)
+# add_executable(rslidar_driver_ros rslidar_driver_ros.cc $ENV{HOME}/dora/examples/c++-ros2-dataflow/build/dora-ros2-bindings.cc $ENV{HOME}/dora/examples/c++-ros2-dataflow/build/dora-node-api.cc)
+# target_link_libraries(rslidar_driver_ros
+#   ${PCL_LIBRARIES}
+#   ${EIGEN_LIBRARIES}
+#   ${YAMLCPP_LIBRARIES}
+#   $ENV{HOME}/dora/target/debug/libdora_node_api_cxx.a
+#   m
+#   rt
+#   dl 
+#   pthread
+#   pcap
+# )
 
 
 

@@ -1,6 +1,6 @@
-# 激光雷达驱动与Rviz可视化
+# RSlidar_driver for DORA
 
-## 文件说明
+## files
 
 lidar.pcap:激光雷达数据包
 
@@ -12,72 +12,45 @@ rslidar_driver.cc: 雷达传感器C++驱动代码
 
 rslidar_driver_ros.cc: C++发送到ros2显示点云的代码
 
-## Dora版本
+Dora版本 0.3.6
 
-参考：https://dora.carsmos.ai/docs/guides/Installation/installing
+  
+## usage
 
-```bash
-export DORA_VERSION=v0.3.2 # Check for the latest release
-export ARCHITECTURE=$(uname -m)
-wget https://github.com/dora-rs/dora/releases/download/${DORA_VERSION}/dora-${DORA_VERSION}-${ARCHITECTURE}-Linux.zip
-unzip dora-${DORA_VERSION}-${ARCHITECTURE}-Linux.zip
-pip install dora-rs==${DORA_VERSION}
-PATH=$PATH:$(pwd)
-dora --help
-```
-
-## 激光雷达驱动安装
-
-参考：https://blog.csdn.net/crp997576280/article/details/135376558
-rs_driver git仓库：https://blog.csdn.net/crp997576280/article/details/135376558
+step1: install rslidar driver
 
 ```bash
-git clone https://github.com/RoboSense-LiDAR/rs_driver.git
-# 安装编译所需依赖
 sudo apt-get install libpcap-dev libeigen3-dev libboost-dev libpcl-dev
-# 编译rs_driver
 cd rs_driver
 mkdir build && cd build
 cmake .. && make -j4
-# 安装rs_driver
-sudo make install
 ```
-## 编译激光雷达dora驱动
 
-在dora_to_ros2/lidar目录下执行编译指令
+step2: build rslidar dora node
+
 
 ```bash
+cd file_path/lidar
 mkdir build && cd build
 cmake ..
-cmake --build .
+make
 ```
-## Demo 运行
 
-雷达传感器读取数据的指令:
+
+step3 run rslidar DORA node
 
 ```bash
-dora start dataflow.yml --name test
+dora start dataflow_rslidar.yml --name test
 ```
-
-PCAP数据包读取的指令:
+ 
+then open anthor terminator and input
 
 ```bash
-dora start dataflow_pcap.yml --name test
+rviz2
 ```
 
-PCAP数据包读取发送到ROS2的指令:
+可以通过param/config.yaml文件修改激光雷达的配置参数适配不同的速腾激光雷达
 
-```bash
-dora start dataflow_pcap_ros --name test
-```
-
-## 结果
-
-PCAP文件读取测试:
-
-```bash
-dora start dataflow_pcap.yml --name test
-```
 
 可以在ros2看见话题： *ros2_bridge/lidar_data*,启动Rviz2，通过话题添加PointCloud2可以显示激光雷达数据。
 

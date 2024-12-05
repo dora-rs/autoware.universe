@@ -1,0 +1,15 @@
+# 文件路径: config.yaml
+app:
+  name: MyApp
+  version: 1.0
+database:
+  host: localhost
+  port: 5432
+  user: admin
+  password: secret
+enabled: true
+features:
+  - feature1
+  - feature2
+  - feature3
+

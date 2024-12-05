@@ -7,7 +7,7 @@ extern "C"
 
 #include <iostream>
 #include <vector>
-
+#include <yaml-cpp/yaml.h>
 
 // rs lidar driver
 #include <rs_driver/api/lidar_driver.hpp>
@@ -109,7 +109,6 @@ int run(void *dora_context)
 {
     unsigned char counter = 0;
 
-    //for (int i = 0; i < 20; i++)
     to_exit_process = false;
     while(!to_exit_process)
     {
@@ -145,9 +144,7 @@ int run(void *dora_context)
                                 << std::endl;
                     }
                 #endif
-
-                //free_cloud_queue.push(msg);//这里是说，上面那个#if里面的东西已经把这个点云处理完了，东西都取出来了，那这个点云实例（占内存的）我们就可以重复利用了，就空闲了，把它放入待使用区（free区）
-                
+   
                 if (sizeof(PointT) <= 16)
                 {
                     RS_MSG << "sizeof(PointT) <= 16 " << RS_REND;
@@ -165,26 +162,23 @@ int run(void *dora_context)
                     *timestamp_ptr = msg->timestamp;
  
                     for(int i=0;i<msg->points.size();i++)
-                        {
-                            float* data_float = (float*)(result.ptr + 16+16*i);
-                            *data_float = msg->points[i].x;
-                            data_float = (float*)(result.ptr + 16+4+16*i);
-                            *data_float = msg->points[i].y;
-                            data_float = (float*)(result.ptr + 16+8+16*i);
-                            *data_float = msg->points[i].z;
-                            data_float = (float*)(result.ptr + 16+12+16*i);
-                            *data_float =msg->points[i].intensity;
+                    {
+                        float* data_float = (float*)(result.ptr + 16+16*i);
+                        *data_float = msg->points[i].x;
+                        data_float = (float*)(result.ptr + 16+4+16*i);
+                        *data_float = msg->points[i].y;
+                        data_float = (float*)(result.ptr + 16+8+16*i);
+                        *data_float = msg->points[i].z;
+                        data_float = (float*)(result.ptr + 16+12+16*i);
+                        *data_float =msg->points[i].intensity;
 
-                        }
+                    }
                     // PointT* point = (PointT*)(bytePointCloud + 16);
                     // std::vector<PointT>::iterator pointPtr = msg->points.begin();
                     // for (int i = 0; i < msg->points.size(); ++i){
                     //   *point++ = pointPtr[i];
                     // }
                    // memcpy(bytePointCloud+16,&(msg->points[0]),cloudSize-16);
-                    
-
-
 
                     free_cloud_queue.push(msg);
                     
@@ -194,23 +188,45 @@ int run(void *dora_context)
                     //return result;
                 }
                 else if (sizeof(PointT) == 24)
-                {                                   // just write them here, I didn't test it
-                    size_t cloudSize =
-                        ((msg->points.size()) * 24);  // 24 bytes for each point, 4*3 bytes for coordinates, 1 byte for intensity, 1
+                {
+                    RS_MSG << "sizeof(PointT) <= 24 " << RS_REND;
+                                                       // just write them here, I didn't test it
+                    size_t cloudSize = ((msg->points.size()) * 24+16);
+                                                    // 24 bytes for each point, 4*3 bytes for coordinates, 1 byte for intensity, 1
                                                     // byte because of byte aligned 2 bytes for rings, 8 bytes for timestamp
+                    size_t all_size =cloudSize;
+                    result.ptr = new uint8_t[all_size];
+                    
+                    uint32_t* seq_ptr = (uint32_t*)result.ptr;
+                    *seq_ptr = msg->seq;
 
-                    u_int8_t* bytePointCloud = (u_int8_t*)new PointT[cloudSize / sizeof(PointT)];
-                    memcpy(bytePointCloud,&(msg->points[0]),cloudSize);
-                    // PointT* point = (PointT*)(bytePointCloud);
-                    // std::vector<PointT>::iterator pointPtr = msg->points.begin();
-                    // for (int i = 0; i < msg->points.size(); ++i)
-                    // {
-                    //   *(point++) = pointPtr[i];
-                    // }
+                    double* timestamp_ptr = (double*)(result.ptr + 8);
+                    *timestamp_ptr = msg->timestamp;
+
+                    //u_int8_t* bytePointCloud = (u_int8_t*)new PointT[cloudSize / sizeof(PointT)];
+                    //memcpy(bytePointCloud,&(msg->points[0]),cloudSize);
+
+                    for(int i=0;i<msg->points.size();i++)
+                    {
+                        float* data_float = (float*)(result.ptr + 16+24*i);
+                        *data_float = msg->points[i].x;
+                        data_float = (float*)(result.ptr + 16+4+24*i);
+                        *data_float = msg->points[i].y;
+                        data_float = (float*)(result.ptr + 16+8+24*i);
+                        *data_float = msg->points[i].z;
+                        data_float = (float*)(result.ptr + 16+12+24*i);
+                        *data_float =msg->points[i].intensity;
+
+                        //data_float = (float*)(result.ptr + 16+16+24*i);
+                       //*data_float =msg->points[i].ring;
+
+                       // data_float = (float*)(result.ptr + 16+20+24*i);
+                        //*data_float =msg->points[i].timestamp;
+                    }
 
                     free_cloud_queue.push(msg);
-                    //Vec_uint8_t result;
-                    result.ptr = bytePointCloud;
+                    
+                    //result.ptr =point_data .ptr;
                     result.len = cloudSize;
                     result.cap = cloudSize;
                     //return result;
@@ -260,13 +276,55 @@ int run(void *dora_context)
 int main()
 {
     std::cout << "rslidar driver for dora " << std::endl;
-
+    std::string filePath = "param/config.yaml";
     RSDriverParam param;                  ///< Create a parameter object
-    param.input_type = InputType::ONLINE_LIDAR; //输入类型
-    param.input_param.msop_port = 6699;   ///< Set the lidar msop port number, the default is 6699
-    param.input_param.difop_port = 7788;  ///< Set the lidar difop port number, the default is 7788
-    param.lidar_type = LidarType::RSHELIOS;   ///< Set the lidar type. Make sure this type is correct雷达类型
-    param.print();//控制台输出参数信息
+
+    try {
+        YAML::Node config = YAML::LoadFile(filePath);
+        if (config["lidar"] && config["lidar"].IsSequence()) 
+        {
+            for (const auto& lidar_node : config["lidar"]) 
+            {
+                if (lidar_node["driver"]) 
+                {
+                    auto driver = lidar_node["driver"];
+                    int msg_source = config["common"]["msg_source"].as<int>();
+                    if(msg_source == 1)
+                        param.input_type = InputType::ONLINE_LIDAR; 
+                    else if (msg_source == 3)
+                    {
+                        param.input_type = InputType::PCAP_FILE;  
+                        param.input_param.pcap_path = driver["pcap_path"].as<std::string>();
+                    }
+
+                    std::string lidar_type = driver["lidar_type"].as<std::string>();
+                    if(lidar_type == "RSHELIOS")
+                        param.lidar_type = LidarType::RSHELIOS;
+                    else if(lidar_type == "RSHELIOS_16P")
+                        param.lidar_type = LidarType::RSHELIOS_16P;
+
+                    param.input_param.msop_port = driver["msop_port"].as<int>();
+                    param.input_param.difop_port =  driver["difop_port"].as<int>();
+                } 
+                else 
+                {
+                    std::cout << "No 'driver' section found for lidar." << std::endl;
+                }
+            }
+        } 
+        else 
+        {
+            std::cout << "Lidar configuration not found or empty!" << std::endl;
+        }
+    } catch (const YAML::BadFile& e) {
+        std::cerr << "can not open YAML file" << filePath << std::endl;
+        return 1;
+    } catch (const YAML::Exception& e) {
+        std::cerr << "error in analy YAML file" << e.what() << std::endl;
+        return 1;
+    }
+ 
+    param.print();
 
     LidarDriver<PointCloudMsg> driver;               ///< Declare the driver object
     driver.regPointCloudCallback(driverGetPointCloudFromCallerCallback, driverReturnPointCloudToCallerCallback); ///< Register the point cloud callback functions
